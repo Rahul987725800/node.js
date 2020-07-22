@@ -13,11 +13,11 @@ exports.postAddProduct = (req, res, next) => {
     const imageUrl = req.body.imageUrl;
     const price = req.body.price;
     const description = req.body.description;
-    Product.create({
+    req.user.createProduct({
         title,
         price,
         description,
-        imageUrl,
+        imageUrl
     })
         .then((result) => {
             // console.log(result); // created product
@@ -32,8 +32,9 @@ exports.getEditProduct = (req, res, next) => {
     const editMode = req.query.edit === "true"; // "true"
     if (!editMode) return res.redirect("/"); // we reached edit with setting edit query param
     const prodId = req.params.productId;
-    Product.findByPk(prodId)
-        .then((product) => {
+    req.user.getProducts({where: {id: prodId}})
+        .then((products) => {
+            const product = products[0];
             if (!product) return res.redirect("/");
             res.render("admin/edit-product", {
                 pageTitle: "Edit Product",
@@ -67,7 +68,7 @@ exports.postEditProduct = (req, res, next) => {
 };
 
 exports.getProducts = (req, res, next) => {
-    Product.findAll()
+    req.user.getProducts()
         .then((products) => {
             res.render("admin/products", {
                 prods: products,

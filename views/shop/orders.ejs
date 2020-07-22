@@ -10,12 +10,16 @@
                 <ul>
                     <% orders.forEach(order => { %> 
                         <li>
-                            <h1># <%= order.id %></h1>
+                            <h1>Order Id: <%= order._id %></h1>
+                            <h3>User Id: <%= order.user._id %></h3>
+                            <h4>User Name: <%= order.user.name %></h4>
+                            <h3>User Email: <%= order.user.email %></h3>
                             <ul>
                                 <% order.products.forEach(product => { %> 
-                                    <li><%= product.title %> (<%= product.orderItem.quantity %>)</li>
+                                    <li><%= product.title %> ---- (<%= product.quantity %> units @ <%= product.price %>)</li>
                                 <% }) %>
                             </ul>
+                            <p>Total Price : <%= order.totalPrice %></p>
                         </li>
                     <% }) %>
                 </ul>

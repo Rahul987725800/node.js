@@ -1,55 +1,74 @@
 const path = require("path");
-const User = require('./models/user');
+const User = require("./models/user");
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
+const session = require("express-session");
+const MongoDBStore = require("connect-mongodb-session")(session);
+
 const errorController = require("./controllers/error");
 // const User = require("./models/user");
 const app = express();
-
+const uri =
+    "mongodb://localhost:27017/shop?readPreference=primary&appname=MongoDB%20Compass%20Community&ssl=false";
+const store = new MongoDBStore({
+    uri: uri,
+    collection: "sessions",
+});
 app.set("view engine", "ejs");
 app.set("views", "views");
 
 const adminRoutes = require("./routes/admin");
 const shopRoutes = require("./routes/shop");
-
+const authRoutes = require("./routes/auth");
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, "public")));
+app.use(
+    session({
+        secret: "my secret",
+        resave: false,
+        saveUninitialized: false,
+        store: store,
+    })
+);
+
 app.use((req, res, next) => {
-    User.findById("5f18a8b67debc141f4b44708")
+    if (!req.session.user) return next();
+    User.findById(req.session.user._id)
         .then((user) => {
-            req.user = user;
+           req.user = user;
             next();
         })
         .catch((err) => console.log(err));
-});
+})
+
 app.use("/admin", adminRoutes);
 app.use(shopRoutes);
-
+app.use(authRoutes);
 app.use(errorController.get404);
-const uri =
-    "mongodb://localhost:27017/shop?readPreference=primary&appname=MongoDB%20Compass%20Community&ssl=false";
-mongoose.connect(uri, {useNewUrlParser: true, useUnifiedTopology: true})
-.then(result => {
-    return User.findOne().then(user => {
-        if (!user){
-            const user = new User({
-                name: 'Rahul', 
-                email: 'guptarahul@gmail.com',
-                cart: {
-                    items: [], 
-                    totalPrice: 0
-                }
-            });
-            return user.save();
-        }
-        return user;
+
+mongoose
+    .connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
+    .then((result) => {
+        return User.findOne().then((user) => {
+            if (!user) {
+                const user = new User({
+                    name: "Rahul",
+                    email: "guptarahul@gmail.com",
+                    cart: {
+                        items: [],
+                        totalPrice: 0,
+                    },
+                });
+                return user.save();
+            }
+            return user;
+        });
     })
-})
-.then(user => {
-    // console.log(user);
-    app.listen(3000);
-})
-.catch(err => {
-    console.log(err);
-});
+    .then((user) => {
+        // console.log(user);
+        app.listen(3000);
+    })
+    .catch((err) => {
+        console.log(err);
+    });

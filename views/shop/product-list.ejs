@@ -28,9 +28,10 @@
                                 </div>
                                 <div class="card__actions">
                                     <a href="/products/<%= product._id %>" class="btn">Details</a>
-                                    <%- include('../includes/add-to-cart.ejs', {product, product}) %>
+                                    <%- include('../includes/add-to-cart.ejs', {product}) %>
                                     <!-- since we are looping through product-list, 
-                                    product need to be passed separately -->
+                                    product need to be passed separately 
+                                    note isAuthenticated need not be passed since it is not inside loop-->
                                 </div>
                             </article>
                             <% } %>

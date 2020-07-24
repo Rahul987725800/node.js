@@ -41,6 +41,9 @@
                         <button type="submit">Logout</button>
                     </form>
                 </li>
+                <li class="main-header__item">
+                    <a class="<%= path === '/profile' ? 'active' : '' %>" href="/admin/profile">Profile</a>
+                </li>
             <% } %>
         </ul>
     </nav>
@@ -83,6 +86,9 @@
                     <input type="hidden" name="_csrf" value ="<%= csrfToken %>">
                     <button type="submit">Logout</button>
                 </form>
+            </li>
+            <li class="mobile-nav__item">
+                <a class="<%= path === '/profile' ? 'active' : '' %>" href="/admin/profile">Profile</a>
             </li>
         <% } %>
     </ul>

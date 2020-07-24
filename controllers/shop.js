@@ -28,13 +28,15 @@ exports.getProduct = (req, res, next) => {
 
 exports.getIndex = (req, res, next) => {
     const successMessage = req.flash('success').pop();
+    const errorMessage = req.flash('error').pop();
     Product.find()
         .then((products) => {
             res.render("shop/index", {
                 prods: products,
                 pageTitle: "Shop",
                 path: "/",
-                successMessage
+                successMessage,
+                errorMessage
             });
         })
         .catch((err) => console.log(err));

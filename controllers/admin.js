@@ -85,3 +85,11 @@ exports.postDeleteProduct = (req, res, next) => {
         })
         .catch((err) => console.log(err));
 };
+exports.getProfile = (req, res, next) => {
+    res.render("admin/profile", {
+        path: "/admin/profile",
+        pageTitle: req.user.name,
+        name: req.user.name,
+        email: req.user.email
+    });
+}

@@ -6,6 +6,7 @@
     <%- include('../includes/navigation.ejs') %>
 
     <main>
+        <%- include('../includes/flash-messages.ejs') %>
         <% if (prods.length > 0) { %>
             <div class="grid">
                 <% for (let product of prods) { %>

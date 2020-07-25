@@ -1,3 +1,5 @@
+const { validationResult } = require("express-validator");
+
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const sendgridTransport = require("nodemailer-sendgrid-transport");
@@ -27,6 +29,11 @@ exports.getLogin = (req, res, next) => {
         pageTitle: "Login",
         errorMessage,
         successMessage,
+        oldInput: {
+            email: '',
+            password: ''
+        },
+        errorFields: []
     });
 };
 
@@ -36,6 +43,8 @@ exports.getSignup = (req, res, next) => {
         path: "/signup",
         pageTitle: "Signup",
         errorMessage,
+        oldInput: null,
+        errorFields: []
     });
 };
 exports.postSignup = async (req, res, next) => {
@@ -43,26 +52,33 @@ exports.postSignup = async (req, res, next) => {
     const email = req.body.email;
     const password = req.body.password;
     const confirmPassword = req.body.confirmPassword;
-    const user = await User.findOne({ email: email });
-    if (user) {
-        req.flash("error", "Email already exists");
-        return res.redirect("/signup");
-    } else {
-        const hashedPassword = await bcrypt.hash(password, 12);
-        const user = name + "***" + email + "***" + hashedPassword;
-        const otpSent = otp();
-        const otpSentHash = await bcrypt.hash(otpSent, 12);
-        req.flash("user", user);
-        req.flash("otp", otpSentHash);
-        req.flash("success", "Please enter OTP sent to your email");
-        res.redirect("/verify-email");
-        transporter.sendMail({
-            to: email,
-            from: "guptarahul70322@gmail.com",
-            subject: "OTP for Email Verification",
-            html: `<h1>Please Enter Below OTP to sign up</h1><br><p>OTP: ${otpSent}</p>`,
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(422).render("auth/signup", {
+            path: "/signup",
+            pageTitle: "Signup",
+            errorMessage: errors.array()[0].msg,
+            oldInput: {
+                name, email, password, confirmPassword
+            },
+            errorFields: errors.array().map(e => e.param)
         });
     }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const user = name + "***" + email + "***" + hashedPassword;
+    const otpSent = otp();
+    const otpSentHash = await bcrypt.hash(otpSent, 12);
+    req.flash("user", user);
+    req.flash("otp", otpSentHash);
+    req.flash("success", "Please enter OTP sent to your email");
+    res.redirect("/verify-email");
+    transporter.sendMail({
+        to: email,
+        from: "guptarahul70322@gmail.com",
+        subject: "OTP for Email Verification",
+        html: `<h1>Please Enter Below OTP to sign up</h1><br><p>OTP: ${otpSent}</p>`,
+    });
 };
 exports.getEmailVerification = (req, res, next) => {
     const user = req.flash("user").pop();
@@ -108,11 +124,31 @@ exports.postEmailVerification = async (req, res, next) => {
 exports.postLogin = (req, res, next) => {
     const email = req.body.email;
     const password = req.body.password;
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(422).render("auth/login", {
+            path: "/login",
+            pageTitle: "Login",
+            errorMessage: errors.array()[0].msg,
+            oldInput: {
+                email, password
+            },
+            errorFields: errors.array().map(e => e.param)
+        });
+    }
     User.findOne({ email: email })
         .then((user) => {
             if (!user) {
-                req.flash("error", "Invalid email");
-                return res.redirect("/login");
+                return res.render("auth/login", {
+                    path: "/login",
+                    pageTitle: "Login",
+                    errorMessage : "No user exist with provided email",
+                    oldInput: {
+                        email, password
+                    },
+                    errorFields: [] // errorFields means invalid input format
+                    // not invalid user credentials so we kept it empty
+                });
             }
             // password -> String, user.password -> hash
             bcrypt
@@ -127,8 +163,15 @@ exports.postLogin = (req, res, next) => {
                             res.redirect("/");
                         });
                     }
-                    req.flash("error", "Invalid password");
-                    res.redirect("/login");
+                    res.render("auth/login", {
+                        path: "/login",
+                        pageTitle: "Login",
+                        errorMessage : "Incorrect password",
+                        oldInput: {
+                            email, password
+                        },
+                        errorFields: []
+                    });
                 })
                 .catch((err) => {
                     console.log(err);
@@ -221,7 +264,7 @@ exports.postReset = (req, res, next) => {
                             if (err) console.log(err);
                             res.redirect("/login");
                         });
-                        
+
                         transporter.sendMail({
                             to: user.email,
                             from: "guptarahul70322@gmail.com",

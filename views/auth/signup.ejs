@@ -11,19 +11,27 @@
         <form class="login-form" action="/signup" method="POST">
             <div class="form-control">
                 <label for="name">Name</label>
-                <input type="text" name="name" id="name">
+                <input 
+                class="<%= errorFields.includes('name') ? 'invalid' : ''%>" 
+                type="text" name="name" id="name" value="<%= oldInput ? oldInput.name : '' %>">
             </div>
             <div class="form-control">
                 <label for="email">E-Mail</label>
-                <input type="email" name="email" id="email">
+                <input type="email" 
+                class="<%= errorFields.includes('email') ? 'invalid' : ''%>" 
+                name="email" id="email" value="<%= oldInput ? oldInput.email : '' %>">
             </div>
             <div class="form-control">
                 <label for="password">Password</label>
-                <input type="password" name="password" id="password">
+                <input type="password" 
+                class="<%= errorFields.includes('password') ? 'invalid' : ''%>" 
+                name="password" id="password" value="<%= oldInput ? oldInput.password : '' %>">
             </div>
             <div class="form-control">
                 <label for="confirmPassword">Confirm Password</label>
-                <input type="password" name="confirmPassword" id="confirmPassword">
+                <input type="password"
+                class="<%= errorFields.includes('confirmPassword') ? 'invalid' : ''%>" 
+                name="confirmPassword" id="confirmPassword" value="<%= oldInput ? oldInput.confirmPassword : '' %>">
             </div>
             <input type="hidden" name="_csrf" value ="<%= csrfToken %>">
             <button class="btn" type="submit">SignUp</button>

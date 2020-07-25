@@ -217,14 +217,11 @@ exports.postReset = (req, res, next) => {
                 return user
                     .save()
                     .then((user) => {
-                        req.session.isLoggedIn = false;
-                        req.session.user = null;
-                        // or u can use req.session.destroy but flash message will be lost
-                        req.flash(
-                            "success",
-                            "Password Reset successful, Please login with new password"
-                        );
-                        res.redirect("/login");
+                        req.session.destroy((err) => {
+                            if (err) console.log(err);
+                            res.redirect("/login");
+                        });
+                        
                         transporter.sendMail({
                             to: user.email,
                             from: "guptarahul70322@gmail.com",

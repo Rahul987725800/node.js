@@ -130,6 +130,7 @@ exports.postLogin = (req, res, next) => {
             path: "/login",
             pageTitle: "Login",
             errorMessage: errors.array()[0].msg,
+            // we are always extracting first error message
             oldInput: {
                 email, password
             },
@@ -146,8 +147,7 @@ exports.postLogin = (req, res, next) => {
                     oldInput: {
                         email, password
                     },
-                    errorFields: [] // errorFields means invalid input format
-                    // not invalid user credentials so we kept it empty
+                    errorFields: ['email']
                 });
             }
             // password -> String, user.password -> hash
@@ -170,7 +170,7 @@ exports.postLogin = (req, res, next) => {
                         oldInput: {
                             email, password
                         },
-                        errorFields: []
+                        errorFields: ['password']
                     });
                 })
                 .catch((err) => {

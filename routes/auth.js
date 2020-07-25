@@ -14,7 +14,8 @@ router.post(
     [
         check('name')
         .isLength({min: 1})
-        .withMessage("Username can't be empty"),
+        .withMessage("Username can't be empty")
+        .trim(), // trim is for sanitizing input to remove whitespaces if any at start and end
         check("email")
             .isEmail() // form checks for just @ this validator also checks for @something.com
             .withMessage("Please enter a valid email")
@@ -31,7 +32,8 @@ router.post(
                     );
                 }
                 return true;
-            }), // we can chain validators like this
+            })
+            .normalizeEmail(),
         body(
             "password",
             `
@@ -60,23 +62,8 @@ router.get("/verify-email", authController.getEmailVerification);
 router.post("/verify-email", authController.postEmailVerification);
 router.post(
     "/login",
-    body('email').isEmail().withMessage("Please enter a valid email"),
-    // this just helps to make process fast
-    // if user doesn't enters password according to rules set on our site
-    // we don't validate him here only rather than rejecting him 
-    // after checking password being wrong in the database
-    body(
-        "password",
-        `
-    Incorrect Password format
-    `
-    )
-        .custom((value) => {
-            const pattern = new RegExp(
-                "^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{5,}$"
-            );
-            return pattern.test(value);
-        }),
+    body('email').isEmail().withMessage("Please enter a valid email").normalizeEmail(),
+    // normalizeEmail removes whitespaces and converts it lowerCase
     authController.postLogin
 );
 router.post("/logout", authController.postLogout);

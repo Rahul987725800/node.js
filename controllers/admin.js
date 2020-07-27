@@ -137,6 +137,12 @@ exports.postEditProduct = (req, res, next) => {
             return product.save().then((result) => {
                 // console.log(result); // saved product
                 res.redirect("/admin/products");
+                /* 
+                Here also we want to have status code 201 for successfully creating resource
+                like res.status(201); res.redirect("/admin/products");
+                but redirecting automatically sets status 300 
+                we will see how to deal with this in rest api
+                */
             });
         })
 

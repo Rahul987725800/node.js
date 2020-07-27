@@ -84,6 +84,8 @@ app.get('/500', errorController.get500);
 app.use(errorController.get404);
 
 // error handling middleware
+// handles throw in synchronous code
+// next(error) in asynchronous code in Promises and callbacks
 app.use((error, req, res, next) => {
     if (error.httpStatusCode) res.status(error.httpStatusCode);
     res.render("500", {
@@ -92,7 +94,7 @@ app.use((error, req, res, next) => {
         error: error ? error : ''
     });
 });
-
+// we can have multiple middlewares they will be handled sequentially
 mongoose
     .connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
     .then((result) => {

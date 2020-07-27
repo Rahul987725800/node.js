@@ -178,7 +178,10 @@ exports.postLogin = (req, res, next) => {
                     res.redirect("/login");
                 });
         })
-        .catch((err) => console.log(err));
+        .catch((err) => {
+            err.httpStatusCode = 500;
+            return next(err);
+        });
 };
 exports.postLogout = (req, res, next) => {
     req.session.destroy((err) => {
@@ -213,7 +216,10 @@ exports.getReset = async (req, res, next) => {
                 `,
                 });
             })
-            .catch((err) => console.log(err));
+            .catch((err) => {
+                err.httpStatusCode = 500;
+                return next(err);
+            });
     });
 };
 exports.getResetPage = (req, res, next) => {
@@ -236,7 +242,10 @@ exports.getResetPage = (req, res, next) => {
                 });
             }
         })
-        .catch((err) => console.log(err));
+        .catch((err) => {
+            err.httpStatusCode = 500;
+            return next(err);
+        });
 };
 exports.postReset = (req, res, next) => {
     const newPassword = req.body.new_password;
@@ -274,7 +283,10 @@ exports.postReset = (req, res, next) => {
                     `,
                         });
                     })
-                    .catch((err) => console.log(err));
+                    .catch((err) => {
+                        err.httpStatusCode = 500;
+                        return next(err);
+                    });
             } else {
                 req.flash(
                     "error",
@@ -284,5 +296,8 @@ exports.postReset = (req, res, next) => {
             }
         })
 
-        .catch((err) => console.log(err));
+        .catch((err) => {
+            err.httpStatusCode = 500;
+            return next(err);
+        });
 };

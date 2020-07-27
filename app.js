@@ -41,17 +41,6 @@ app.use(csrfProtection);
 // this must be after setting up session
 app.use(flash());
 
-
-app.use((req, res, next) => {
-    if (!req.session.user) return next();
-    User.findById(req.session.user._id)
-        .then((user) => {
-           req.user = user;
-            next();
-        })
-        .catch((err) => console.log(err));
-})
-
 app.use((req, res, next) => {
     res.locals.isAuthenticated = req.session.isLoggedIn;
     res.locals.csrfToken = req.csrfToken();
@@ -59,10 +48,50 @@ app.use((req, res, next) => {
     res.locals.successMessage = null;
     next();
 })
+
+app.use((req, res, next) => {
+    // throw new Error('Sync Dummy'); 
+    /* Very Important
+        in case of synchronous code just throwing an error
+        works and it is catched by error handling middleware
+        for asynchronous code, using promises(in then and catch blocks) and callbacks
+        use next(err); 
+    */
+    if (!req.session.user) return next();
+    // if no user in the session we exit
+    User.findById(req.session.user._id)
+        .then((user) => {
+            // throw new Error('Dummy');
+            if (!user) {
+                // if user present in session but not available in database
+                return next();
+            }
+           req.user = user;
+            next();
+        })
+        .catch((err) => {
+            err.httpStatusCode = 500;
+            next(err);
+            // technical issue, we are unable to connect to database
+        });
+})
+
+
 app.use("/admin", adminRoutes);
 app.use(shopRoutes);
 app.use(authRoutes);
+app.get('/500', errorController.get500);
 app.use(errorController.get404);
+
+// error handling middleware
+app.use((error, req, res, next) => {
+    if (error.httpStatusCode) res.status(error.httpStatusCode);
+    res.render("500", {
+        pageTitle: "Error!",
+        path: "/500",
+        error: error ? error : ''
+    });
+});
 
 mongoose
     .connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })

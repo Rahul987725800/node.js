@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Product = require("../models/product");
 const { validationResult } = require("express-validator");
 exports.getAddProduct = (req, res, next) => {
@@ -29,6 +30,7 @@ exports.postAddProduct = (req, res, next) => {
         });
     }
     const product = new Product({
+        // _id: new mongoose.Types.ObjectId("5f1be149c160892e58b42e06"),
         title,
         price,
         description,
@@ -42,7 +44,23 @@ exports.postAddProduct = (req, res, next) => {
             // console.log(result);
             res.redirect("/admin/products");
         })
-        .catch((err) => console.log(err));
+        .catch((err) => {
+            // console.log(err.message);
+            // status code 500 for server side error
+            /*
+            return res.status(500).render("admin/edit-product", {
+                pageTitle: "Add Product",
+                path: "/admin/add-product",
+                editing: false,
+                hasErrorFields: true,
+                product: { title, imageUrl, price, description },
+                errorMessage: 'Database operation failed, please try again.'
+            });
+            */
+            err.httpStatusCode = 500;
+            return next(err);
+            // this will pass all the routes until it finds error handling middleware
+        });
 };
 
 exports.getEditProduct = (req, res, next) => {
@@ -52,6 +70,7 @@ exports.getEditProduct = (req, res, next) => {
 
     Product.findOne({ _id: prodId, userId: req.user._id })
         .then((product) => {
+            // throw new Error("Something wrong with editing");
             if (!product) {
                 // we don't take user to edit page
                 req.flash(
@@ -68,7 +87,10 @@ exports.getEditProduct = (req, res, next) => {
                 product: product,
             });
         })
-        .catch((err) => console.log(err));
+        .catch((err) => {
+            err.httpStatusCode = 500;
+            return next(err);
+        });
 };
 
 exports.postEditProduct = (req, res, next) => {
@@ -90,7 +112,7 @@ exports.postEditProduct = (req, res, next) => {
                 imageUrl: updatedImageUrl,
                 price: updatedPrice,
                 description: updatedDescription,
-                _id: prodId
+                _id: prodId,
             },
             errorMessage:
                 errors.array().reduce((acc, e) => {
@@ -118,7 +140,10 @@ exports.postEditProduct = (req, res, next) => {
             });
         })
 
-        .catch((err) => console.log(err));
+        .catch((err) => {
+            err.httpStatusCode = 500;
+            return next(err);
+        });
 };
 
 exports.getProducts = (req, res, next) => {
@@ -136,7 +161,10 @@ exports.getProducts = (req, res, next) => {
                 successMessage,
             });
         })
-        .catch((err) => console.log(err));
+        .catch((err) => {
+            err.httpStatusCode = 500;
+            return next(err);
+        });
 };
 exports.postDeleteProduct = (req, res, next) => {
     const prodId = req.body.productId;

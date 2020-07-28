@@ -4,13 +4,27 @@ const { unsubscribe } = require("../routes/shop");
 const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const path = require("path");
-exports.getProducts = (req, res, next) => {
-    Product.find() // .cursor().next() can be used
+
+const ITEMS_PER_PAGE = 2;
+
+exports.getProducts = async (req, res, next) => {
+    const page = +req.query.page || 1;
+    const numProducts = await Product.find().countDocuments();
+    const successMessage = req.flash("success").pop();
+    const errorMessage = req.flash("error").pop();
+    Product.find()
+        .skip((page-1) * ITEMS_PER_PAGE)
+        .limit(ITEMS_PER_PAGE)
         .then((products) => {
             res.render("shop/product-list", {
                 prods: products,
                 pageTitle: "All Products",
                 path: "/products",
+                numProducts,
+                currentPage: page, 
+                lastPage: Math.ceil(numProducts/ITEMS_PER_PAGE),
+                successMessage,
+                errorMessage,
             });
         })
         .catch((err) => {
@@ -35,15 +49,22 @@ exports.getProduct = (req, res, next) => {
         });
 };
 
-exports.getIndex = (req, res, next) => {
+exports.getIndex = async (req, res, next) => {
+    const page = +req.query.page || 1;
+    const numProducts = await Product.find().countDocuments();
     const successMessage = req.flash("success").pop();
     const errorMessage = req.flash("error").pop();
     Product.find()
+        .skip((page-1) * ITEMS_PER_PAGE)
+        .limit(ITEMS_PER_PAGE)
         .then((products) => {
             res.render("shop/index", {
                 prods: products,
                 pageTitle: "Shop",
                 path: "/",
+                numProducts,
+                currentPage: page, 
+                lastPage: Math.ceil(numProducts/ITEMS_PER_PAGE),
                 successMessage,
                 errorMessage,
             });

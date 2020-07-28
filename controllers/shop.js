@@ -1,13 +1,16 @@
 const Product = require("../models/product");
 const Order = require("../models/order");
 const { unsubscribe } = require("../routes/shop");
+const PDFDocument = require("pdfkit");
+const fs = require("fs");
+const path = require("path");
 exports.getProducts = (req, res, next) => {
     Product.find() // .cursor().next() can be used
         .then((products) => {
             res.render("shop/product-list", {
                 prods: products,
                 pageTitle: "All Products",
-                path: "/products"
+                path: "/products",
             });
         })
         .catch((err) => {
@@ -23,7 +26,7 @@ exports.getProduct = (req, res, next) => {
             res.render("shop/product-detail", {
                 product: product,
                 pageTitle: product.title,
-                path: "/products"
+                path: "/products",
             });
         })
         .catch((err) => {
@@ -33,8 +36,8 @@ exports.getProduct = (req, res, next) => {
 };
 
 exports.getIndex = (req, res, next) => {
-    const successMessage = req.flash('success').pop();
-    const errorMessage = req.flash('error').pop();
+    const successMessage = req.flash("success").pop();
+    const errorMessage = req.flash("error").pop();
     Product.find()
         .then((products) => {
             res.render("shop/index", {
@@ -42,7 +45,7 @@ exports.getIndex = (req, res, next) => {
                 pageTitle: "Shop",
                 path: "/",
                 successMessage,
-                errorMessage
+                errorMessage,
             });
         })
         .catch((err) => {
@@ -55,18 +58,19 @@ exports.getCart = (req, res, next) => {
     req.user
         .populate("cart.items.productId")
         .execPopulate()
-        .then( async (user) => {
+        .then(async (user) => {
             const products = [];
-            for (let item of user.cart.items){
-                if (item.productId){ // if we able to populate data then only
+            for (let item of user.cart.items) {
+                if (item.productId) {
+                    // if we able to populate data then only
                     products.push({
                         ...item.productId._doc,
                         quantity: item.quantity,
-                    })
+                    });
                 }
             }
-        
-            if (products.length < user.cart.items.length){
+
+            if (products.length < user.cart.items.length) {
                 await user.adjustCartForDeletedProducts(products);
             }
             return [products, user.cart.totalPrice];
@@ -77,7 +81,7 @@ exports.getCart = (req, res, next) => {
                 path: "/cart",
                 pageTitle: "Your Cart",
                 products: products,
-                totalPrice: totalPrice
+                totalPrice: totalPrice,
             });
         })
         .catch((err) => {
@@ -114,12 +118,12 @@ exports.postCartDeleteProduct = (req, res, next) => {
         });
 };
 exports.getOrders = (req, res, next) => {
-    Order.find({"user._id" : req.user._id })
+    Order.find({ "user._id": req.user._id })
         .then((orders) => {
             res.render("shop/orders", {
                 path: "/orders",
                 pageTitle: "Your Orders",
-                orders: orders
+                orders: orders,
             });
         })
         .catch((err) => {
@@ -139,18 +143,18 @@ exports.postOrder = (req, res, next) => {
             return [products, user.cart.totalPrice];
         })
         .then(([products, totalPrice]) => {
-            const order = new Order ({
+            const order = new Order({
                 user: {
-                    _id: req.user._id, 
+                    _id: req.user._id,
                     name: req.user.name,
-                    email: req.user.email
-                }, 
-                products, 
-                totalPrice
-            })
+                    email: req.user.email,
+                },
+                products,
+                totalPrice,
+            });
             return order.save();
         })
-        .then(res => {
+        .then((res) => {
             return req.user.clearCart();
         })
         .then((result) => {
@@ -164,6 +168,66 @@ exports.postOrder = (req, res, next) => {
 exports.getCheckout = (req, res, next) => {
     res.render("shop/checkout", {
         path: "/checkout",
-        pageTitle: "Checkout"
+        pageTitle: "Checkout",
     });
+};
+exports.getInvoice = (req, res, next) => {
+    const orderId = req.params.orderId;
+    Order.findById(orderId)
+        .then((order) => {
+            if (!order) {
+                return next(new Error("No order found"));
+            }
+            if (order.user._id.toString() !== req.user._id.toString()) {
+                return next(new Error("Unauthorised"));
+            }
+            const invoiceName = "invoice-" + orderId + ".pdf";
+            const invoicePath = path.join("data", "invoices", invoiceName);
+            res.setHeader("Content-type", "application/pdf");
+            // res.setHeader('Content-Disposition', 'attachment; filename="' + invoiceName + '"');
+            res.setHeader(
+                "Content-Disposition",
+                'inline; filename="' + invoiceName + '"'
+            );
+
+            if (fs.existsSync(invoicePath)) {
+                // console.log('read existing file');
+                file = fs.createReadStream(invoicePath);
+                file.pipe(res);
+            } else {
+                // console.log('created new file');
+                const pdfDoc = new PDFDocument();
+                pdfDoc.pipe(fs.createWriteStream(invoicePath));
+                pdfDoc.pipe(res);
+                pdfDoc.fontSize(26).text("Invoice", {
+                    underline: true,
+                });
+                pdfDoc.text("------------------------");
+                order.products.forEach((prod) => {
+                    pdfDoc
+                        .fontSize(16)
+                        .text(
+                            prod.title +
+                                " - " +
+                                prod.quantity +
+                                " x " +
+                                prod.price +
+                                " = " +
+                                prod.quantity * prod.price
+                        );
+                });
+                pdfDoc.text("------------------------");
+                pdfDoc.fontSize(20).text("Total Price: " + order.totalPrice);
+                pdfDoc.end();
+            }
+
+            /*
+            // This will read entire file and then serve
+            fs.readFile(invoicePath, (err, data) => {
+                if (err) next(err);
+                res.send(data);
+            });
+            */
+        })
+        .catch((err) => next(err));
 };

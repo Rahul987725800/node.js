@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Product = require("../models/product");
 const { validationResult } = require("express-validator");
+const fileHelper = require('../util/file');
 exports.getAddProduct = (req, res, next) => {
     res.render("admin/edit-product", {
         pageTitle: "Add Product",
@@ -12,9 +13,19 @@ exports.getAddProduct = (req, res, next) => {
 
 exports.postAddProduct = (req, res, next) => {
     const title = req.body.title;
-    const imageUrl = req.body.imageUrl;
+    const image = req.file;
     const price = req.body.price;
     const description = req.body.description;
+    if (!image){
+        return res.status(422).render("admin/edit-product", {
+            pageTitle: "Add Product",
+            path: "/admin/add-product",
+            editing: false,
+            hasErrorFields: true,
+            product: { title, price, description },
+            errorMessage: "Attached file is not an image"
+        });
+    }
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(422).render("admin/edit-product", {
@@ -22,13 +33,15 @@ exports.postAddProduct = (req, res, next) => {
             path: "/admin/add-product",
             editing: false,
             hasErrorFields: true,
-            product: { title, imageUrl, price, description },
+            product: { title, price, description },
             errorMessage:
                 errors.array().reduce((acc, e) => {
                     return acc + e.param + ", ";
                 }, "") + " are invalid",
         });
     }
+
+    const imageUrl = image.path;
     const product = new Product({
         // _id: new mongoose.Types.ObjectId("5f1be149c160892e58b42e06"),
         title,
@@ -97,9 +110,8 @@ exports.postEditProduct = (req, res, next) => {
     const prodId = req.body.productId;
     const updatedTitle = req.body.title;
     const updatedPrice = req.body.price;
-    const updatedImageUrl = req.body.imageUrl;
+    const updatedImage = req.file;
     const updatedDescription = req.body.description;
-
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(422).render("admin/edit-product", {
@@ -109,7 +121,6 @@ exports.postEditProduct = (req, res, next) => {
             hasErrorFields: true,
             product: {
                 title: updatedTitle,
-                imageUrl: updatedImageUrl,
                 price: updatedPrice,
                 description: updatedDescription,
                 _id: prodId,
@@ -120,6 +131,7 @@ exports.postEditProduct = (req, res, next) => {
                 }, "") + " are invalid",
         });
     }
+    let updatedImageUrl;
     Product.findById(prodId)
         .then((product) => {
             if (product.userId.toString() !== req.user._id.toString()) {
@@ -130,6 +142,11 @@ exports.postEditProduct = (req, res, next) => {
                 );
                 return res.redirect("/");
             }
+            if (updatedImage){
+                updatedImageUrl = updatedImage.path;
+                fileHelper.deleteFile(product.imageUrl); // delete old image
+            } 
+            else updatedImageUrl = product.imageUrl;
             product.title = updatedTitle;
             product.price = updatedPrice;
             product.imageUrl = updatedImageUrl;
@@ -174,13 +191,19 @@ exports.getProducts = (req, res, next) => {
 };
 exports.postDeleteProduct = (req, res, next) => {
     const prodId = req.body.productId;
-    // giving condition userId: req.user._id ensures that
-    // product is deleted only if created by logged in user.
-    Product.deleteOne({ _id: prodId, userId: req.user._id }, (err) => {
-        if (err) console.log(err);
-        req.flash("success", "Product deleted successfully");
-        res.redirect("/admin/products");
-    });
+    Product.findById(prodId).then(
+        product => {
+            if (!product) return next(new Error('Product not found'));
+            if (product.userId.toString() === req.user._id.toString()){
+                fileHelper.deleteFile(product.imageUrl);
+                Product.deleteOne({ _id: prodId, userId: req.user._id }, (err) => {
+                    if (err) console.log(err);
+                    req.flash("success", "Product deleted successfully");
+                    res.redirect("/admin/products");
+                });
+            }
+        }
+    ).catch(err => next(err));
 };
 exports.getProfile = (req, res, next) => {
     res.render("admin/profile", {

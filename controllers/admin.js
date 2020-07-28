@@ -189,8 +189,8 @@ exports.getProducts = (req, res, next) => {
             return next(err);
         });
 };
-exports.postDeleteProduct = (req, res, next) => {
-    const prodId = req.body.productId;
+exports.deleteProduct = (req, res, next) => {
+    const prodId = req.params.productId;
     Product.findById(prodId).then(
         product => {
             if (!product) return next(new Error('Product not found'));
@@ -198,12 +198,15 @@ exports.postDeleteProduct = (req, res, next) => {
                 fileHelper.deleteFile(product.imageUrl);
                 Product.deleteOne({ _id: prodId, userId: req.user._id }, (err) => {
                     if (err) console.log(err);
-                    req.flash("success", "Product deleted successfully");
-                    res.redirect("/admin/products");
+                    res.status(200).json({
+                        message: 'Success!'
+                    });
                 });
             }
         }
-    ).catch(err => next(err));
+    ).catch(err => {
+        res.status(500).json({ message: 'Deleting product failed'});
+    });
 };
 exports.getProfile = (req, res, next) => {
     res.render("admin/profile", {

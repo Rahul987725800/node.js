@@ -180,6 +180,7 @@ exports.getCheckoutSuccess = (req, res, next) => {
             return req.user.clearCart();
         })
         .then((result) => {
+            req.flash('success', "Congratulations your order has been placed");
             res.redirect("/orders");
         })
         .catch((err) => {

@@ -14,6 +14,8 @@ router.post("/add-product",  [
     body('description').isLength({min: 5, max: 400}).trim()
 ], isAuth, adminController.postAddProduct);
 
+router.post("/add-random-product", isAuth, adminController.postAddRandomProduct);
+
 
 
 router.get("/edit-product/:productId", isAuth, adminController.getEditProduct);
@@ -27,5 +29,6 @@ router.get("/products", isAuth, adminController.getProducts);
 
 
 router.delete("/product/:productId", isAuth, adminController.deleteProduct);
+router.delete("/products", isAuth, adminController.deleteAllProducts);
 router.get("/profile", isAuth, adminController.getProfile);
 module.exports = router;

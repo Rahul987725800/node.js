@@ -239,6 +239,8 @@ exports.getResetPage = (req, res, next) => {
                     pageTitle: "Reset Password",
                     resetToken: token,
                     errorMessage,
+                    oldInput: {newPassword: '', oldPassword: ''},
+                    errorField: ''
                 });
             }
         })
@@ -251,13 +253,24 @@ exports.postReset = (req, res, next) => {
     const newPassword = req.body.new_password;
     const oldPassword = req.body.old_password;
     const token = req.body.resetToken;
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(422).render("auth/reset", {
+            path: "/reset",
+            pageTitle: "Reset Password",
+            resetToken: token,
+            errorMessage: errors.array()[0].msg,
+            oldInput: {oldPassword, newPassword},
+            errorField: 'new_password'
+        });
+    }
     User.findOne({
         resetToken: token,
         resetTokenExpiration: { $gt: Date.now() },
     })
         .then(async (user) => {
             if (!user) {
-                req.flash("error", "Invalid or Expired Token");
+                req.flash("error", "Invalid or Expired Token, password resetting failed");
                 return res.redirect("/");
             }
             const matched = await bcrypt.compare(oldPassword, user.password);
@@ -288,11 +301,14 @@ exports.postReset = (req, res, next) => {
                         return next(err);
                     });
             } else {
-                req.flash(
-                    "error",
-                    "Old Password entered was incorrect, please try again"
-                );
-                res.redirect(`/reset/${token}`);
+                return res.status(422).render("auth/reset", {
+                    path: "/reset",
+                    pageTitle: "Reset Password",
+                    resetToken: token,
+                    errorMessage: "Old Password entered was incorrect, please try again",
+                    oldInput: {oldPassword, newPassword},
+                    errorField: 'old_password'
+                });
             }
         })
 

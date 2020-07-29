@@ -117,11 +117,10 @@ exports.postCart = (req, res, next) => {
             return req.user.addToCart(product);
         })
         .then((result) => {
-            res.redirect("/cart");
+            res.status(200).json({message: "Added to cart"});
         })
         .catch((err) => {
-            err.httpStatusCode = 500;
-            return next(err);
+            res.status(500).json({message: err.message});
         });
 };
 exports.postCartDeleteProduct = (req, res, next) => {

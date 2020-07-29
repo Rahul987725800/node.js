@@ -11,11 +11,15 @@
         <form class="login-form" action="/reset/" method="POST">
             <div class="form-control">
                 <label for="old_password">Old Password</label>
-                <input type="password" name="old_password" id="old_password">
+                <input type="password" 
+                class="<%= errorField === 'old_password' ? 'invalid' : ''%>" 
+                name="old_password" id="old_password" value="<%= oldInput.oldPassword %>">
             </div>
             <div class="form-control">
                 <label for="new_password">New Password</label>
-                <input type="password" name="new_password" id="new_password">
+                <input type="password" 
+                class="<%= errorField === 'new_password' ? 'invalid' : ''%>" 
+                name="new_password" id="new_password" value="<%= oldInput.newPassword %>">
             </div>
             <input type="hidden" name="_csrf" value ="<%= csrfToken %>">
             <input type="hidden" name="resetToken" value ="<%= resetToken %>">

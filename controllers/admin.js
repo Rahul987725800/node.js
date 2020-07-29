@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Product = require("../models/product");
 const { validationResult } = require("express-validator");
 const fileHelper = require('../util/file');
+const rootPath = require('../util/path');
 exports.getAddProduct = (req, res, next) => {
     res.render("admin/edit-product", {
         pageTitle: "Add Product",
@@ -41,7 +42,7 @@ exports.postAddProduct = (req, res, next) => {
         });
     }
 
-    const imageUrl = image.path;
+    const imageUrl = '/'+image.path;
     const product = new Product({
         // _id: new mongoose.Types.ObjectId("5f1be149c160892e58b42e06"),
         title,
@@ -73,6 +74,27 @@ exports.postAddProduct = (req, res, next) => {
             err.httpStatusCode = 500;
             return next(err);
             // this will pass all the routes until it finds error handling middleware
+        });
+};
+exports.postAddRandomProduct = async (req, res, next) => {
+    const title = req.body.title;
+    const imageUrl = req.body.imageUrl;
+    const price = req.body.price;
+    const description = req.body.description;
+    const product = new Product({
+        title,
+        price,
+        description,
+        imageUrl,
+        userId: req.user,
+    });
+
+    product.save()
+        .then((product) => {
+            res.status(200).json(product);
+        })
+        .catch((err) => {
+            res.status(500).json({ message: 'Adding product failed'});
         });
 };
 
@@ -143,8 +165,9 @@ exports.postEditProduct = (req, res, next) => {
                 return res.redirect("/");
             }
             if (updatedImage){
-                updatedImageUrl = updatedImage.path;
-                fileHelper.deleteFile(product.imageUrl); // delete old image
+                updatedImageUrl = '/'+updatedImage.path;
+                if(!product.imageUrl.startsWith("http"))
+                    fileHelper.deleteFile(rootPath + product.imageUrl); // delete old image
             } 
             else updatedImageUrl = product.imageUrl;
             product.title = updatedTitle;
@@ -195,11 +218,12 @@ exports.deleteProduct = (req, res, next) => {
         product => {
             if (!product) return next(new Error('Product not found'));
             if (product.userId.toString() === req.user._id.toString()){
-                fileHelper.deleteFile(product.imageUrl);
+                if (!product.imageUrl.startsWith("http"))
+                    fileHelper.deleteFile(rootPath + product.imageUrl);
                 Product.deleteOne({ _id: prodId, userId: req.user._id }, (err) => {
                     if (err) console.log(err);
                     res.status(200).json({
-                        message: 'Success!'
+                        message: 'Deleted Successfully!'
                     });
                 });
             }
@@ -208,6 +232,17 @@ exports.deleteProduct = (req, res, next) => {
         res.status(500).json({ message: 'Deleting product failed'});
     });
 };
+exports.deleteAllProducts = (req, res, next) => {
+    Product.deleteMany({ userId: req.user._id })
+        .then(result => {
+            res.status(200).json({
+                message: 'Deleted All Products Successfully!'
+            });
+        })
+        .catch(err => {
+            res.status(500).json({ message: 'Deleting products failed'});
+        })
+}
 exports.getProfile = (req, res, next) => {
     res.render("admin/profile", {
         path: "/admin/profile",

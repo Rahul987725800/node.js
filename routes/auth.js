@@ -12,10 +12,10 @@ router.post(
     "/signup",
 
     [
-        check('name')
-        .isLength({min: 1})
-        .withMessage("Username can't be empty")
-        .trim(), // trim is for sanitizing input to remove whitespaces if any at start and end
+        check("name")
+            .isLength({ min: 1 })
+            .withMessage("Username can't be empty")
+            .trim(), // trim is for sanitizing input to remove whitespaces if any at start and end
         check("email")
             .isEmail() // form checks for just @ this validator also checks for @something.com
             .withMessage("Please enter a valid email")
@@ -62,7 +62,10 @@ router.get("/verify-email", authController.getEmailVerification);
 router.post("/verify-email", authController.postEmailVerification);
 router.post(
     "/login",
-    body('email').isEmail().withMessage("Please enter a valid email").normalizeEmail(),
+    body("email")
+        .isEmail()
+        .withMessage("Please enter a valid email")
+        .normalizeEmail(),
     // normalizeEmail removes whitespaces and converts it lowerCase
     authController.postLogin
 );
@@ -70,5 +73,22 @@ router.post("/logout", authController.postLogout);
 
 router.get("/reset", authController.getReset);
 router.get("/reset/:token", authController.getResetPage);
-router.post("/reset", authController.postReset);
+router.post(
+    "/reset",
+    body(
+        "new_password",
+        `
+Password should be minimum 5 characters long
+and it must contain a upperCase, a lowerCase, a digit and a special character
+`
+    )
+        .isLength({ min: 5 }) // not needed though as regex is also checking this
+        .custom((value) => {
+            const pattern = new RegExp(
+                "^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{5,}$"
+            );
+            return pattern.test(value);
+        }),
+    authController.postReset
+);
 module.exports = router;

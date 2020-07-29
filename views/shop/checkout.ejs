@@ -1,0 +1,47 @@
+<%- include('../includes/head.ejs') %>
+    </head>
+
+    <body>
+        <%- include('../includes/navigation.ejs') %>
+        <main>
+            <% if(products.length > 0) {%>
+                <ul>
+                    <% products.forEach(p => { %>
+                        <p><li><%= p.title %> (<%= p.quantity %>) @ <%= p.price %> each</li></p>
+                    <% }) %>
+                </ul>
+                <hr>
+                <div class="centered">
+                    <p>Total Price: <%= totalPrice %></p>
+                </div>
+                <div>
+                    <div class="centered">
+                        <button id="order-btn" class="btn">Go to Payment Page</button>
+                    </div>
+                   
+                    <script src="https://js.stripe.com/v3/"></script>
+                    <script>
+                        var stripe=Stripe("pk_test_HNLTRbgyrzhEPPgPe6Kgj7u2001hy5NNzH");
+                        var orderBtn = document.getElementById('order-btn');
+                        orderBtn.addEventListener('click', () => {
+                            stripe.redirectToCheckout({
+                                sessionId: '<%= sessionId %>'
+                            });
+                        })
+                        /*
+                        note: currently on successful checkout
+                        we are redirected /checkout/successs
+                        and then we post order and clear cart
+                        but we can manually reach that url
+                        eg add some items in cart
+                        then visit /checkout/success
+                        that will lead to same result
+                        in real application we should verify with stripe
+                        that whether payment is registered with them
+                        then only post the order
+                        */
+                    </script>
+                </div>
+            <% } %>
+        </main>
+        <%- include('../includes/end.ejs') %>

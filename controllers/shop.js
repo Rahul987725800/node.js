@@ -4,7 +4,7 @@ const { unsubscribe } = require("../routes/shop");
 const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const path = require("path");
-
+const stripe = require('stripe')('sk_test_sWWlQJcz8atIfsBjgH8SGilX002QjxYaHK');
 const ITEMS_PER_PAGE = 2;
 
 exports.getProducts = async (req, res, next) => {
@@ -138,12 +138,14 @@ exports.postCartDeleteProduct = (req, res, next) => {
         });
 };
 exports.getOrders = (req, res, next) => {
+    const successMessage = req.flash('success').pop();
     Order.find({ "user._id": req.user._id })
         .then((orders) => {
             res.render("shop/orders", {
                 path: "/orders",
                 pageTitle: "Your Orders",
                 orders: orders,
+                successMessage
             });
         })
         .catch((err) => {
@@ -151,7 +153,7 @@ exports.getOrders = (req, res, next) => {
             return next(err);
         });
 };
-exports.postOrder = (req, res, next) => {
+exports.getCheckoutSuccess = (req, res, next) => {
     req.user
         .populate("cart.items.productId")
         .execPopulate()
@@ -186,10 +188,60 @@ exports.postOrder = (req, res, next) => {
         });
 };
 exports.getCheckout = (req, res, next) => {
-    res.render("shop/checkout", {
-        path: "/checkout",
-        pageTitle: "Checkout",
-    });
+
+    req.user
+        .populate("cart.items.productId")
+        .execPopulate()
+        .then(async (user) => {
+            const products = [];
+            for (let item of user.cart.items) {
+                if (item.productId) {
+                    // if we able to populate data then only
+                    products.push({
+                        ...item.productId._doc,
+                        quantity: item.quantity,
+                    });
+                }
+            }
+
+            if (products.length < user.cart.items.length) {
+                await user.adjustCartForDeletedProducts(products);
+            }
+            return [products, user.cart.totalPrice];
+        })
+        .then(async ([products, totalPrice]) => {
+            // console.log(products);
+            const session = await stripe.checkout.sessions.create({
+                payment_method_types: ['card'],
+                line_items: products.map(p => {
+                    return {
+                        name: p.title,
+                        description: p.description,
+                        amount: p.price * 100,
+                        currency: 'usd',
+                        quantity: p.quantity
+                    }
+                }),
+                // req.protocol -> http or https
+                // req.get('host') -> localhost:3000 or domain name of our website
+                // complete url becomes -> http://localhost:3000/checkout/success
+                success_url: req.protocol + '://' + req.get('host') + '/checkout/success',
+                cancel_url: req.protocol + '://' + req.get('host') + '/checkout/cancel',
+            });
+
+            
+            res.render("shop/checkout", {
+                path: "/checkout",
+                pageTitle: "Checkout",
+                products: products,
+                totalPrice: totalPrice,
+                sessionId: session.id
+            });
+        })
+        .catch((err) => {
+            err.httpStatusCode = 500;
+            return next(err);
+        });
 };
 exports.getInvoice = (req, res, next) => {
     const orderId = req.params.orderId;

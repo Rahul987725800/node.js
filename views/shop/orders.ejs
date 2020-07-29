@@ -4,6 +4,7 @@
     <body>
         <%- include('../includes/navigation.ejs') %>
         <main>
+            <%- include('../includes/flash-messages.ejs') %>
             <% if (orders.length <= 0) {%>
             <h1>Nothing there!</h1>
             <% } else { %>
